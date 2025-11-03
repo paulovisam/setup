@@ -46,21 +46,41 @@ mise use --global java@17
 log "Instalando Spotify..."
 bash <(curl -sSL https://spotx-official.github.io/run.sh) --installdeb --stable
 
-log "Instalando Diodon..."
-sudo add-apt-repository ppa:diodon-team/stable -y > /dev/null
-sudo apt-get update && sudo apt-get install -y diodon > /dev/null
+log "Instalando yarn"
+npm install --global yarn
 
-log "Instalando btop..."
-sudo apt-get install -y btop > /dev/null
+log "Adicionando repositórios..."
+sudo add-apt-repository ppa:diodon-team/stable -y > /dev/null
+sudo add-apt-repository ppa:tomtomtom/yt-dlp -y > /dev/null
+
+APT_APPS=(
+  ffmpeg
+  flameshot
+  diodon
+  btop
+  folder-color
+  yarn
+  gnome-sushi
+  zoxide
+  yt-dlp
+  mysql-client
+)
+log "Instalando pacotes apt..."
+sudo apt-get update
+for app in "${FLATPAK_APPS[@]}"; do
+  log "Instalando $app..."
+  sudo apt install "$app" -y > /dev/null
+done
+
+eval "$(zoxide init bash)"
+nautilus -q #Fechar o Nautilus para aplicar as mudanças
 
 log "Instalando React Native Debugger..."
 wget -q https://github.com/jhen0409/react-native-debugger/releases/download/v0.14.0/react-native-debugger_0.14.0_amd64.deb -O react-native-debugger.deb
 sudo dpkg -i react-native-debugger.deb || sudo apt-get install -f -y
 rm -f react-native-debugger.deb
 
-log "Instalando Zoxide..."
-sudo apt install zoxide
-eval "$(zoxide init bash)"
+
 
 #Verificar se LibreOffice já está instalado
 if dpkg -l | grep libreoffice; then
@@ -111,9 +131,6 @@ curl -s https://gist.githubusercontent.com/paulovisam/abc5cbbd187a101d90bd71c5e0
 log "Definindo atalhos de teclado..."
 
 # Configurar o atalho
-log "Instalando Flameshot..."
-sudo apt install flameshot
-
 log "Configurando atalhos personalizados..."
 
 # Define a lista completa de atalhos
@@ -142,8 +159,7 @@ log "Desativando Wayland e usando Xorg..."
 sudo sed -i 's/#WaylandEnable=false/WaylandEnable=false/' /etc/gdm3/custom.conf || echo "WaylandEnable=false" | sudo tee -a /etc/gdm3/custom.conf > /dev/null
 
 log "Ambiente de desenvolvimento configurado com sucesso!"
-sudo apt install folder-color gnome-sushi -y
-nautilus -q #Fechar o Nautilus para aplicar as mudanças
+
 
 # Ferramentas via Docker
 log "Instalando Docker..."
