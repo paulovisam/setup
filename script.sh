@@ -15,8 +15,18 @@ log() {
 
 # Configuração do mise
 curl https://mise.run | sh
-~/.local/bin/mise --version
-echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc
+
+#Instala o mise para todos os usuários
+sudo mv /root/.local/bin/mise /usr/local/bin/
+sudo chown root:root /usr/local/bin/mise
+sudo chmod 755 /usr/local/bin/mise
+/usr/local/bin/mise --version
+echo 'eval "$(/usr/local/bin/mise activate bash)"' | sudo tee /etc/profile.d/mise.sh > /dev/null
+sudo chmod +x /etc/profile.d/mise.sh
+source ~/.bashrc
+
+#Cria alias cls
+echo "alias cls='clear'" >> ~/.bashrc
 source ~/.bashrc
 
 log "Instalando Node.js via mise..."
