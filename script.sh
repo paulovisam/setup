@@ -116,6 +116,11 @@ FLATPAK_APPS=(
   org.qbittorrent.qBittorrent
   it.mijorus.gearlever
   com.termius.Termius
+  com.github.ADBeveridge.Raider
+  com.github.tchx84.Flatseal
+  io.missioncenter.MissionCenter
+  com.stremio.Stremio
+  io.github.peazip.PeaZip
 )
 
 # Loop para instalar os pacotes Flatpak
