@@ -130,6 +130,12 @@ for app in "${FLATPAK_APPS[@]}"; do
   flatpak install flathub "$app" -y > /dev/null
 done
 
+#Instalando Termius pelo site em.deb, versão do Flatpak tem problemas com terminal local
+wget https://www.termius.com/download/linux/Termius.deb
+sudo dpkg -i Termius.deb
+rm -f Termius.deb
+
+
 log "Instalando Cursor..."
 curl -s https://gist.githubusercontent.com/paulovisam/abc5cbbd187a101d90bd71c5e0fb0eba/raw/c52aa0bfc302e85ee2094c5adf8e346b60f8114b/install_cursor.sh | bash
 
