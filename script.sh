@@ -180,6 +180,7 @@ sh get-docker.sh
 log "Testando instalação do Docker..."
 sudo usermod -aG docker "$USER"
 newgrp docker
+rm -f get-docker.sh
 
 # Contêineres com Docker
 log "Iniciando contêiner PostgreSQL..."
