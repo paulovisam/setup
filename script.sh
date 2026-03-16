@@ -115,7 +115,6 @@ FLATPAK_APPS=(
   com.obsproject.Studio
   org.qbittorrent.qBittorrent
   it.mijorus.gearlever
-  com.termius.Termius
   com.github.ADBeveridge.Raider
   com.github.tchx84.Flatseal
   io.missioncenter.MissionCenter
@@ -130,7 +129,7 @@ for app in "${FLATPAK_APPS[@]}"; do
   flatpak install flathub "$app" -y > /dev/null
 done
 
-#Instalando Termius pelo site em.deb, versão do Flatpak tem problemas com terminal local
+# Instalando Termius pelo site em.deb, versão do Flatpak tem problemas com terminal local
 wget https://www.termius.com/download/linux/Termius.deb
 sudo dpkg -i Termius.deb
 rm -f Termius.deb
@@ -200,6 +199,9 @@ docker run -d --name mysql --restart=always \
 log "Iniciando contêiner Redis..."
 docker run -d --name redis --restart=always -p 6379:6379 redis
 
+#todo- configurar comando code
 
 sudo reboot
-
+# criar uma pasta temp para arquivos temporarios
+# TEMP_DIR=$(mktemp -d)
+# log "Pasta temporária criada em: $TEMP_DIR"
