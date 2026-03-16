@@ -43,6 +43,7 @@ log "Instalando Java via mise..."
 mise i java@17
 mise use --global java@17
 
+#TODO: instalar apenas para versões baseadas em Ubuntu 24.04 LTS
 log "Instalando Spotify..."
 bash <(curl -sSL https://spotx-official.github.io/run.sh) --installdeb --stable
 
