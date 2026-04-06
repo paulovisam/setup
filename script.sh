@@ -121,6 +121,7 @@ FLATPAK_APPS=(
   io.missioncenter.MissionCenter
   com.stremio.Stremio
   io.github.peazip.PeaZip
+  com.github.wwmm.easyeffects
 )
 
 # Loop para instalar os pacotes Flatpak
