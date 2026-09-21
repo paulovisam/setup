@@ -13,6 +13,22 @@ log() {
   echo -e "\e[32m[INFO]\e[0m $1"
 }
 
+log "Configurando DNS Cloudflare (1.1.1.3, 1.0.0.3)..."
+mkdir -p /etc/systemd/resolved.conf.d
+cat > /etc/systemd/resolved.conf.d/dns.conf <<'EOF'
+[Resolve]
+DNS=1.1.1.3 1.0.0.3
+EOF
+systemctl restart systemd-resolved
+
+if command -v nmcli >/dev/null 2>&1; then
+  while IFS= read -r uuid; do
+    [ -z "$uuid" ] && continue
+    nmcli connection modify "$uuid" ipv4.ignore-auto-dns yes
+    nmcli connection modify "$uuid" ipv4.dns "1.1.1.3 1.0.0.3"
+  done < <(nmcli -t -f UUID connection show)
+fi
+
 # Configuração do mise
 curl https://mise.run | sh
 
@@ -39,6 +55,11 @@ mise i python@3.12
 mise i python@3.10
 mise use --global python@3.12
 
+log "Instalando Poetry..."
+curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3 - --yes
+ln -sf /opt/poetry/bin/poetry /usr/local/bin/poetry
+poetry --version
+
 log "Instalando Java via mise..."
 mise i java@17
 mise use --global java@17
@@ -62,7 +83,6 @@ APT_APPS=(
   folder-color
   yarn
   gnome-sushi
-  zoxide
   yt-dlp
   mysql-client
 )
@@ -72,9 +92,12 @@ for app in "${FLATPAK_APPS[@]}"; do
   log "Instalando $app..."
   sudo apt install "$app" -y > /dev/null
 done
-
-eval "$(zoxide init bash)"
 nautilus -q #Fechar o Nautilus para aplicar as mudanças
+
+log "Instalando Zoxide..."
+curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+echo 'eval "$(zoxide init bash)"' >> ~/.bashrc
+
 
 log "Instalando React Native Debugger..."
 wget -q https://github.com/jhen0409/react-native-debugger/releases/download/v0.14.0/react-native-debugger_0.14.0_amd64.deb -O react-native-debugger.deb
@@ -156,19 +179,18 @@ gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/or
 gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ command "flameshot gui"
 gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ binding "<Shift><Super>s"
 
-# Configurar o FlameShot
-cat <<EOF > ~/.config/flameshot/flameshot.ini
-[General]
-drawColor=#ff0000
-drawThickness=3
-EOF
-
 # Atalho do Diodon
 log "Configurando atalho do Diodon..."
 gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/ name "diodon"
 gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/ command "/usr/bin/diodon"
 gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/ binding "<Super>v"
 
+# Configurar o FlameShot
+cat <<EOF > ~/.config/flameshot/flameshot.ini
+[General]
+drawColor=#ff0000
+drawThickness=3
+EOF
 
 log "Removendo atalho de emoji"
 gsettings set org.freedesktop.ibus.panel.emoji hotkey "@as []"
@@ -209,9 +231,8 @@ docker run -d --name mysql --restart=always \
 log "Iniciando contêiner Redis..."
 docker run -d --name redis --restart=always -p 6379:6379 redis
 
-#todo- configurar comando code
-
 sudo reboot
+
 # criar uma pasta temp para arquivos temporarios
 # TEMP_DIR=$(mktemp -d)
 # log "Pasta temporária criada em: $TEMP_DIR"
