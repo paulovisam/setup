@@ -156,7 +156,7 @@ else
   fi
 fi
 
-log "Instalando yarn via npm (global; evita pacote apt/cmdtest)..."
+log "Instalando pacotes npm globais (yarn evita o pacote apt/cmdtest)..."
 # Aviso se yarn/cmdtest do apt já estiverem presentes (conflito clássico no Ubuntu)
 if dpkg -l 2>/dev/null | awk '/^ii/ {print $2}' | grep -qx 'yarn'; then
   warn "Pacote apt 'yarn' detectado — pode ser cmdtest. Prefira 'npm i -g yarn' (mise/npm)."
@@ -172,12 +172,25 @@ if command -v yarn >/dev/null 2>&1; then
     warn "Comando yarn no PATH nao parece ser o Yarn do Node (possivel cmdtest)."
   fi
 fi
+# Pacotes npm globais (yarn evita o pacote apt/cmdtest)
+NPM_APPS=(
+  yarn
+  next
+)
+
 # Garante npm no PATH após mise
 if run_as_user bash -lc 'command -v npm >/dev/null'; then
-  run_as_user bash -lc 'npm install --global yarn'
-  run_as_user bash -lc 'yarn --version' || warn "yarn global instalado, mas 'yarn --version' falhou no PATH do usuário."
+  log "Instalando pacotes npm globais..."
+  for pkg in "${NPM_APPS[@]}"; do
+    log "Instalando $pkg..."
+    if ! run_as_user bash -lc "npm install --global $pkg"; then
+      warn "Falha ao instalar pacote npm: $pkg (continuando)."
+      continue
+    fi
+    run_as_user bash -lc "$pkg --version" || warn "$pkg global instalado, mas '$pkg --version' falhou no PATH do usuário."
+  done
 else
-  warn "npm não encontrado; pulando yarn global via npm."
+  warn "npm não encontrado; pulando pacotes npm globais."
 fi
 
 log "Adicionando repositórios..."
