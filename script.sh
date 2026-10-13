@@ -463,6 +463,33 @@ log "Adicionando $REAL_USER ao grupo docker (sem newgrp — faça logout/login).
 getent group docker >/dev/null 2>&1 || groupadd docker || true
 usermod -aG docker "$REAL_USER" || true
 
+# Project NOMAD: Command Center em :8080. MySQL/Redis dele ficam na rede interna.
+if [ "${SKIP_NOMAD:-0}" = "1" ]; then
+  warn "SKIP_NOMAD=1 — pulando Project NOMAD."
+elif ! docker info >/dev/null 2>&1; then
+  warn "Docker daemon indisponível — pulando Project NOMAD."
+elif [ -f /opt/project-nomad/compose.yml ]; then
+  log "Project NOMAD já instalado; subindo a stack..."
+  if docker compose -p project-nomad -f /opt/project-nomad/compose.yml up -d; then
+    log "Command Center: http://localhost:8080"
+  else
+    warn "Falha ao subir Project NOMAD (continuando)."
+  fi
+else
+  log "Instalando Project NOMAD (https://www.projectnomad.us/)..."
+  if curl -fsSL https://raw.githubusercontent.com/Crosstalk-Solutions/project-nomad/main/install/install_nomad.sh -o /tmp/install_nomad.sh; then
+    # O instalador pergunta confirmação e aceite da licença Apache 2.0 (y/N).
+    if printf 'y\ny\n' | bash /tmp/install_nomad.sh; then
+      log "Project NOMAD instalado. Command Center: http://localhost:8080"
+    else
+      warn "Falha ao instalar Project NOMAD (continuando)."
+    fi
+    rm -f /tmp/install_nomad.sh
+  else
+    warn "Não foi possível baixar o instalador do Project NOMAD (continuando)."
+  fi
+fi
+
 ensure_container() {
   local name="$1"
   shift
