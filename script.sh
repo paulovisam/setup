@@ -373,8 +373,29 @@ if [ "${SKIP_GUI:-0}" != "1" ]; then
 
   log "Instalando Cursor..."
   curl -s https://gist.githubusercontent.com/paulovisam/abc5cbbd187a101d90bd71c5e0fb0eba/raw/c52aa0bfc302e85ee2094c5adf8e346b60f8114b/install_cursor.sh | bash || warn "Falha ao instalar Cursor."
+
+  log "Instalando extensão Git Graph no Cursor (Open VSX)..."
+  if [ ! -x /opt/cursor.appimage ]; then
+    warn "Cursor não encontrado em /opt/cursor.appimage; pulando Git Graph."
+  else
+    git_graph_vsix="/tmp/mhutchie.git-graph.vsix"
+    git_graph_url=$(curl -fsSL https://open-vsx.org/api/mhutchie/git-graph/latest \
+      | grep -o '"download":"https://[^"]*\.vsix"' | head -n1 | sed 's/"download":"//;s/"$//') || true
+    if [ -z "${git_graph_url:-}" ]; then
+      warn "Não foi possível obter a URL do Git Graph no Open VSX (continuando)."
+    elif curl -fsSL "$git_graph_url" -o "$git_graph_vsix"; then
+      if run_as_user env APPIMAGE_EXTRACT_AND_RUN=1 /opt/cursor.appimage --no-sandbox --install-extension "$git_graph_vsix" --force; then
+        log "Git Graph instalado no Cursor."
+      else
+        warn "Falha ao instalar Git Graph no Cursor (continuando)."
+      fi
+      rm -f "$git_graph_vsix"
+    else
+      warn "Download do Git Graph falhou (continuando)."
+    fi
+  fi
 else
-  warn "SKIP_GUI=1 — pulando Termius e Cursor."
+  warn "SKIP_GUI=1 — pulando Termius, Cursor e Git Graph."
 fi
 
 if [ "${SKIP_GUI:-0}" != "1" ] && command -v gsettings >/dev/null 2>&1; then
