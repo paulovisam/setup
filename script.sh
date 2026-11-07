@@ -209,7 +209,6 @@ APT_APPS=(
   btop
   folder-color
   gnome-sushi
-  yt-dlp
   mysql-client
 )
 
@@ -225,6 +224,10 @@ done
 if [ "${SKIP_GUI:-0}" != "1" ] && command -v nautilus >/dev/null 2>&1; then
   run_as_user nautilus -q 2>/dev/null || true
 fi
+
+log "Instalando yt-dlp..."
+sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
+sudo chmod a+rx /usr/local/bin/yt-dlp
 
 log "Instalando Zoxide..."
 install_zoxide_ok=0
