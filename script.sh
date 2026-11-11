@@ -332,6 +332,7 @@ else
   append_fish_config "alias cls='clear'"
   if [ "$install_zoxide_ok" -eq 1 ]; then
     append_fish_config 'zoxide init fish | source'
+    append_fish_config "alias cd='z'"
     log "Zoxide configurado no Fish."
   fi
 fi
@@ -348,8 +349,12 @@ fi
 
 log "Instalando bat..."
 if apt-get install -y $APT_OPTIONS bat; then
-  if [ -x /usr/bin/fish ] && ! command -v bat >/dev/null 2>&1 && command -v batcat >/dev/null 2>&1; then
-    append_fish_config "alias bat='batcat'"
+  if [ -x /usr/bin/fish ] && { command -v bat >/dev/null 2>&1 || command -v batcat >/dev/null 2>&1; }; then
+    if ! command -v bat >/dev/null 2>&1; then
+      append_fish_config "alias bat='batcat'"
+    fi
+    # Tema default no modo escuro e GitHub no claro. No Linux isso vem do GNOME, não do defaults do macOS.
+    append_fish_config "alias cat \"bat --theme=(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | string match -q '*dark*' && echo default || echo GitHub)\""
   fi
 else
   warn "Falha ao instalar bat (continuando)."
@@ -357,6 +362,13 @@ fi
 
 log "Instalando fzf..."
 if apt-get install -y $APT_OPTIONS fzf; then
+  if [ -x /usr/bin/fish ]; then
+    fzf_preview_bin="bat"
+    if ! command -v bat >/dev/null 2>&1 && command -v batcat >/dev/null 2>&1; then
+      fzf_preview_bin="batcat"
+    fi
+    append_fish_config "set -gx FZF_CTRL_T_OPTS \"--style full --walker-skip .git,node_modules,target --preview '${fzf_preview_bin} -n --color=always {}' --bind 'ctrl-/:change-preview-window(down|hidden|)'\""
+  fi
   if [ -x /usr/bin/fish ] && [ ! -f /usr/share/fish/vendor_conf.d/fzf.fish ]; then
     fzf_bindings=""
     for cand in \
@@ -405,7 +417,8 @@ else
   fi
 fi
 if [ "$eza_ok" -eq 1 ] && [ -x /usr/bin/fish ] && command -v eza >/dev/null 2>&1; then
-  append_fish_config "alias ls='eza'"
+  append_fish_config "alias ls='eza --color=always --long --git --no-filesize --icons=always --no-time --no-user --no-permissions'"
+  append_fish_config "alias l='ls -la'"
   log "eza configurado como ls no Fish."
 fi
 
