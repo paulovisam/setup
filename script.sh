@@ -35,6 +35,18 @@ append_bashrc() {
   grep -Fqx "$line" "$bashrc" 2>/dev/null || echo "$line" >> "$bashrc"
 }
 
+append_fish_config() {
+  local line="$1"
+  local fish_dir="$REAL_HOME/.config/fish"
+  local config="$fish_dir/config.fish"
+  mkdir -p "$fish_dir"
+  touch "$config"
+  if [ "$REAL_USER" != "root" ]; then
+    chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.config" "$fish_dir" "$config" 2>/dev/null || true
+  fi
+  grep -Fqx "$line" "$config" 2>/dev/null || echo "$line" >> "$config"
+}
+
 # Garante dirs do usuário real graváveis (instaladores root às vezes poluem ~/.cache/~/.local)
 ensure_user_writable() {
   mkdir -p "$REAL_HOME/.local/bin" "$REAL_HOME/.local/share" "$REAL_HOME/.cache"
@@ -300,6 +312,101 @@ if [ "$install_zoxide_ok" -eq 1 ]; then
   log "Zoxide configurado no bashrc."
 else
   warn "Zoxide não pôde ser instalado (continuando sem abortar o script)."
+fi
+
+log "Instalando Fish..."
+if ! apt-get install -y $APT_OPTIONS fish; then
+  warn "Falha ao instalar fish (continuando)."
+else
+  grep -qxF '/usr/bin/fish' /etc/shells 2>/dev/null || echo '/usr/bin/fish' >> /etc/shells
+  current_shell=$(getent passwd "$REAL_USER" | cut -d: -f7)
+  if [ "$current_shell" = "/usr/bin/fish" ]; then
+    log "Fish já é o shell padrão de $REAL_USER."
+  elif chsh -s /usr/bin/fish "$REAL_USER"; then
+    log "Fish definido como shell padrão de $REAL_USER. Vale no próximo login."
+  else
+    warn "Não foi possível definir o Fish como shell padrão (continuando)."
+  fi
+
+  append_fish_config '/usr/local/bin/mise activate fish | source'
+  append_fish_config "alias cls='clear'"
+  if [ "$install_zoxide_ok" -eq 1 ]; then
+    append_fish_config 'zoxide init fish | source'
+    log "Zoxide configurado no Fish."
+  fi
+fi
+
+log "Instalando Starship..."
+if curl -fsSL https://starship.rs/install.sh | sh -s -- -y && [ -x /usr/local/bin/starship ]; then
+  if [ -x /usr/bin/fish ]; then
+    append_fish_config 'starship init fish | source'
+    log "Starship configurado no Fish."
+  fi
+else
+  warn "Falha ao instalar Starship (continuando)."
+fi
+
+log "Instalando bat..."
+if apt-get install -y $APT_OPTIONS bat; then
+  if [ -x /usr/bin/fish ] && ! command -v bat >/dev/null 2>&1 && command -v batcat >/dev/null 2>&1; then
+    append_fish_config "alias bat='batcat'"
+  fi
+else
+  warn "Falha ao instalar bat (continuando)."
+fi
+
+log "Instalando fzf..."
+if apt-get install -y $APT_OPTIONS fzf; then
+  if [ -x /usr/bin/fish ] && [ ! -f /usr/share/fish/vendor_conf.d/fzf.fish ]; then
+    fzf_bindings=""
+    for cand in \
+      /usr/share/doc/fzf/examples/key-bindings.fish \
+      /usr/share/fish/vendor_functions.d/fzf_key_bindings.fish
+    do
+      if [ -f "$cand" ]; then
+        fzf_bindings="$cand"
+        break
+      fi
+    done
+    if [ -n "$fzf_bindings" ]; then
+      append_fish_config "source $fzf_bindings"
+    else
+      warn "fzf instalado, mas atalhos do Fish não encontrados."
+    fi
+  fi
+else
+  warn "Falha ao instalar fzf (continuando)."
+fi
+
+log "Instalando eza..."
+eza_ok=0
+if apt-get install -y $APT_OPTIONS eza >/dev/null 2>&1; then
+  eza_ok=1
+else
+  warn "Pacote apt eza indisponível; tentando binário oficial."
+  case "$(uname -m)" in
+    x86_64) eza_target="x86_64-unknown-linux-gnu" ;;
+    aarch64|arm64) eza_target="aarch64-unknown-linux-gnu" ;;
+    *) eza_target="" ;;
+  esac
+  if [ -n "$eza_target" ] && curl -fsSL "https://github.com/eza-community/eza/releases/latest/download/eza_${eza_target}.tar.gz" -o /tmp/eza.tar.gz; then
+    mkdir -p /tmp/eza-extract
+    if tar -xzf /tmp/eza.tar.gz -C /tmp/eza-extract; then
+      eza_bin=$(find /tmp/eza-extract -type f -name eza -print -quit)
+      if [ -n "$eza_bin" ]; then
+        install -m 0755 "$eza_bin" /usr/local/bin/eza
+        eza_ok=1
+      fi
+    fi
+    rm -rf /tmp/eza.tar.gz /tmp/eza-extract
+  fi
+  if [ "$eza_ok" -ne 1 ]; then
+    warn "Falha ao instalar eza (continuando)."
+  fi
+fi
+if [ "$eza_ok" -eq 1 ] && [ -x /usr/bin/fish ] && command -v eza >/dev/null 2>&1; then
+  append_fish_config "alias ls='eza'"
+  log "eza configurado como ls no Fish."
 fi
 
 if [ "${SKIP_GUI:-0}" != "1" ]; then
