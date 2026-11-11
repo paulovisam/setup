@@ -360,6 +360,7 @@ else
     com.stremio.Stremio
     io.github.peazip.PeaZip
     com.github.wwmm.easyeffects
+    io.github.alainm23.planify
   )
 
   log "Instalando pacotes Flatpak..."
@@ -369,6 +370,16 @@ else
       warn "Falha ao instalar Flatpak $app (continuando)."
     fi
   done
+
+  log "Instalando DBX..."
+  if command -v flatpak >/dev/null 2>&1; then
+    flatpak remote-add --if-not-exists flatpark https://dl.flatpark.org/flatpark.flatpakrepo \
+      || warn "Remote FlatPark indisponível (continuando)."
+    flatpak install flatpark com.dbxio.dbx -y > /dev/null 2>&1 \
+      || warn "Falha ao instalar DBX (continuando)."
+  else
+    warn "flatpak indisponível; pulando DBX."
+  fi
 fi
 
 if [ "${SKIP_GUI:-0}" != "1" ]; then
@@ -402,8 +413,69 @@ if [ "${SKIP_GUI:-0}" != "1" ]; then
       warn "Download do Git Graph falhou (continuando)."
     fi
   fi
+
+  install_deb() {
+    local name="$1"
+    local url="$2"
+    local dest="/tmp/${name}.deb"
+    log "Instalando $name..."
+    if [ -z "$url" ]; then
+      warn "URL do $name indisponível (continuando)."
+      return 0
+    fi
+    if ! curl -fsSL "$url" -o "$dest"; then
+      warn "Download de $name falhou (continuando)."
+      rm -f "$dest"
+      return 0
+    fi
+    if dpkg -i "$dest" || apt-get install -f -y; then
+      rm -f "$dest"
+      return 0
+    fi
+    warn "Falha ao instalar $name (continuando)."
+    rm -f "$dest"
+    return 0
+  }
+
+  github_release_deb() {
+    local repo="$1"
+    local asset_regex="$2"
+    local url=""
+    url=$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" \
+      | grep -oE "https://github.com/${repo}/releases/download/[^\"[:space:]]*${asset_regex}" \
+      | head -n1) || true
+    printf '%s' "$url"
+  }
+
+  case "$(uname -m)" in
+    aarch64|arm64)
+      deb_arch="arm64"
+      grok_platform="linux-arm64"
+      ;;
+    *)
+      deb_arch="amd64"
+      grok_platform="linux-x64"
+      ;;
+  esac
+
+  solomd_url=$(github_release_deb zhitongblog/solomd "SoloMD_[^\"[:space:]]*_${deb_arch}\\.deb")
+  install_deb "SoloMD" "$solomd_url"
+
+  grok_url=$(curl -fsSL "https://api2.cursor.sh/updates/api/download/stable/${grok_platform}/sand" \
+    | grep -o '"debUrl":"https://[^"]*"' | head -n1 | sed 's/"debUrl":"//;s/"$//') || true
+  install_deb "Grok Bot" "$grok_url"
+
+  install_deb "Maestri" "https://cdn.maestri.dev/linux/Maestri-latest-${deb_arch}.deb"
+
+  orca_url=$(github_release_deb stablyai/orca "orca-ide_[^\"[:space:]]*_${deb_arch}\\.deb")
+  install_deb "Orca" "$orca_url"
+  if [ -n "$orca_url" ]; then
+    apt-get install -y $APT_OPTIONS libasound2t64 >/dev/null 2>&1 \
+      || apt-get install -y $APT_OPTIONS libasound2 >/dev/null 2>&1 \
+      || warn "libasound indisponível; o Orca pode não abrir sem áudio."
+  fi
 else
-  warn "SKIP_GUI=1 — pulando Termius, Cursor e Git Graph."
+  warn "SKIP_GUI=1 — pulando Termius, Cursor, Git Graph, SoloMD, Grok Bot, Maestri e Orca."
 fi
 
 if [ "${SKIP_GUI:-0}" != "1" ] && command -v gsettings >/dev/null 2>&1; then
