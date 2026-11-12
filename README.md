@@ -6,5 +6,5 @@ Se você acha que Super+S é só um atalho, espere até ver isso em ação. 🔥
 
 Execute e seja feliz!
 ```
-curl -s https://gist.githubusercontent.com/paulovisam/d21f7824b78ce4109e067efe0fa83722/raw/628c4a55f8afa941968be8a2d46cea67dbe67743/setup.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/paulovisam/setup/main/script.sh | sudo bash
 ```
