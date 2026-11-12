@@ -193,6 +193,50 @@ else
   warn "npm não encontrado; pulando pacotes npm globais."
 fi
 
+# CLIs de coding agents (sempre; não dependem de GUI)
+log "Instalando CLIs de coding agents..."
+ensure_user_writable
+append_bashrc 'export PATH="$HOME/.local/bin:$PATH"'
+append_bashrc 'export PATH="$HOME/.opencode/bin:$PATH"'
+
+install_ai_cli() {
+  local name="$1"
+  local install_cmd="$2"
+  local verify_cmd="$3"
+  log "Instalando $name..."
+  if run_as_user bash -lc "$install_cmd"; then
+    if run_as_user bash -lc 'export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"; '"$verify_cmd"; then
+      log "$name OK."
+    else
+      warn "$name instalado, mas verificação falhou (continuando)."
+    fi
+  else
+    warn "Falha ao instalar $name (continuando)."
+  fi
+}
+
+install_ai_cli "Claude Code" \
+  'curl -fsSL https://claude.ai/install.sh | bash' \
+  'claude --version'
+
+install_ai_cli "Codex" \
+  'curl -fsSL https://chatgpt.com/codex/install.sh | sh' \
+  'codex --version'
+
+install_ai_cli "Cursor CLI" \
+  'curl -fsS https://cursor.com/install | bash' \
+  'agent --version'
+
+install_ai_cli "Antigravity CLI" \
+  'curl -fsSL https://antigravity.google/cli/install.sh | bash' \
+  'agy --version'
+
+install_ai_cli "OpenCode" \
+  'curl -fsSL https://opencode.ai/v2/install | bash' \
+  'opencode --version'
+
+ensure_user_writable
+
 log "Adicionando repositórios..."
 export DEBIAN_FRONTEND=noninteractive
 # Evita prompts interativos de conffile (ex.: /etc/fuse.conf) que travam CI/VMs headless
