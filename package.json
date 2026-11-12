@@ -1,0 +1,26 @@
+{
+  "name": "setup",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch src/index.tsx",
+    "start": "bun src/index.tsx",
+    "test": "vitest run",
+    "typecheck": "bun check"
+  },
+  "devDependencies": {
+    "@termuijs/testing": "^0.1.7",
+    "@types/bun": "latest",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "@termuijs/adapters": "^0.1.7",
+    "@termuijs/core": "^0.1.7",
+    "@termuijs/jsx": "^0.1.7",
+    "@termuijs/tss": "^0.1.7",
+    "@termuijs/ui": "^0.1.7",
+    "@termuijs/widgets": "^0.1.7",
+    "execa": "^10.2.1"
+  }
+}
