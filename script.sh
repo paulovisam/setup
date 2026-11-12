@@ -509,7 +509,8 @@ if [ "${SKIP_GUI:-0}" != "1" ]; then
     | grep -o '"debUrl":"https://[^"]*"' | head -n1 | sed 's/"debUrl":"//;s/"$//') || true
   install_deb "Grok Bot" "$grok_url"
 
-  install_deb "Maestri" "https://cdn.maestri.dev/linux/Maestri-latest-${deb_arch}.deb"
+  log "Instalando Maestri..."
+  curl -fsSL https://themaestri.app/linux/script.sh | bash || warn "Falha ao instalar Maestri (continuando)."
 
   orca_url=$(github_release_deb stablyai/orca "orca-ide_[^\"[:space:]]*_${deb_arch}\\.deb")
   install_deb "Orca" "$orca_url"
@@ -670,6 +671,14 @@ ensure_container mysql --restart=always \
 
 log "Iniciando contêiner Redis..."
 ensure_container redis --restart=always -p 6379:6379 redis
+
+log "Instalando GitHub CLI (gh)..."
+if apt-get install -y $APT_OPTIONS gh > /dev/null; then
+  log "gh instalado: $(gh --version 2>/dev/null | head -n1 || echo ok)"
+else
+  warn "Falha ao instalar gh (continuando)."
+fi
+warn "Faça login no GitHub CLI após o setup: gh auth login"
 
 log "Concluído. Reinicie o sistema quando conveniente para aplicar grupo docker e GDM:"
 echo "  sudo reboot"
