@@ -264,6 +264,7 @@ APT_APPS=(
   folder-color
   gnome-sushi
   mysql-client
+  rygel
 )
 
 log "Instalando pacotes apt..."
@@ -580,6 +581,57 @@ drawColor=#ff0000
 drawThickness=3
 EOF
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/flameshot" 2>/dev/null || true
+
+# DLNA/UPnP AV via Rygel (Videos, Music, Pictures do usuário)
+if [ "${SKIP_DLNA:-0}" = "1" ]; then
+  warn "SKIP_DLNA=1 — pulando Rygel/DLNA."
+else
+  log "Configurando Rygel (DLNA) com Videos, Music e Pictures..."
+  mkdir -p "$REAL_HOME/Videos" "$REAL_HOME/Music" "$REAL_HOME/Pictures" "$REAL_HOME/.config"
+  cat > "$REAL_HOME/.config/rygel.conf" <<'EOF'
+[General]
+upnp-enabled=true
+enable-transcoding=true
+video-upload-folder=@VIDEOS@
+music-upload-folder=@MUSIC@
+picture-upload-folder=@PICTURES@
+
+[MediaExport]
+enabled=true
+title=@REALNAME@'s media
+uris=@VIDEOS@;@MUSIC@;@PICTURES@
+extract-metadata=true
+monitor-changes=true
+
+[Tracker]
+enabled=false
+
+[LocalSearch]
+enabled=false
+EOF
+  chown -R "$REAL_USER:$REAL_USER" \
+    "$REAL_HOME/Videos" "$REAL_HOME/Music" "$REAL_HOME/Pictures" "$REAL_HOME/.config/rygel.conf" 2>/dev/null || true
+
+  if command -v rygel >/dev/null 2>&1; then
+    REAL_UID="$(id -u "$REAL_USER" 2>/dev/null || true)"
+    if [ -n "$REAL_UID" ] && [ "$REAL_USER" != "root" ] && command -v systemctl >/dev/null 2>&1; then
+      # Mantém o serviço de usuário ativo mesmo sem sessão gráfica aberta
+      if command -v loginctl >/dev/null 2>&1; then
+        loginctl enable-linger "$REAL_USER" 2>/dev/null || warn "Não foi possível habilitar linger para $REAL_USER."
+      fi
+      if sudo -u "$REAL_USER" -H env HOME="$REAL_HOME" XDG_RUNTIME_DIR="/run/user/$REAL_UID" \
+        systemctl --user enable --now rygel 2>/dev/null; then
+        log "Rygel habilitado como serviço de usuário (DLNA)."
+      else
+        warn "Falha ao habilitar rygel via systemd --user; inicie manualmente com: rygel"
+      fi
+    else
+      warn "Rygel instalado; inicie com: rygel (ou systemctl --user enable --now rygel)."
+    fi
+  else
+    warn "Pacote rygel não ficou disponível no PATH após a instalação."
+  fi
+fi
 
 if [ -f /etc/gdm3/custom.conf ]; then
   log "Desativando Wayland e usando Xorg..."
