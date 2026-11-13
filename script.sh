@@ -435,6 +435,17 @@ else
   else
     warn "flatpak indisponível; pulando DBX."
   fi
+
+  log "Configurando AnyDesk para iniciar no login..."
+  mkdir -p "$REAL_HOME/.config/autostart"
+  cat > "$REAL_HOME/.config/autostart/anydesk.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=AnyDesk
+Exec=flatpak run com.anydesk.Anydesk
+X-GNOME-Autostart-enabled=true
+EOF
+  chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/autostart" 2>/dev/null || true
 fi
 
 if [ "${SKIP_GUI:-0}" != "1" ]; then
