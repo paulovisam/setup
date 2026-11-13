@@ -76,6 +76,16 @@ if command -v nmcli >/dev/null 2>&1; then
   done < <(nmcli -t -f UUID connection show 2>/dev/null || true)
 fi
 
+# Electron/Cursor e watchers de arquivo esgotam o default (instances=128)
+log "Aumentando limites de inotify (watches/instances)..."
+cat > /etc/sysctl.d/99-inotify.conf <<'EOF'
+fs.inotify.max_user_watches=524288
+fs.inotify.max_user_instances=1024
+EOF
+sysctl -p /etc/sysctl.d/99-inotify.conf >/dev/null 2>&1 \
+  || sysctl -w fs.inotify.max_user_watches=524288 fs.inotify.max_user_instances=1024 >/dev/null 2>&1 \
+  || warn "Não foi possível aplicar sysctl de inotify (continuando)."
+
 # Configuração do mise
 log "Instalando mise..."
 ensure_user_writable
@@ -436,6 +446,18 @@ if [ "${SKIP_GUI:-0}" != "1" ]; then
 
   log "Instalando Cursor..."
   curl -s https://gist.githubusercontent.com/paulovisam/abc5cbbd187a101d90bd71c5e0fb0eba/raw/c52aa0bfc302e85ee2094c5adf8e346b60f8114b/install_cursor.sh | bash || warn "Falha ao instalar Cursor."
+
+  log "Criando comando 'code' para abrir o Cursor..."
+  if [ -x /opt/cursor.appimage ]; then
+    cat > /usr/local/bin/code <<'EOF'
+#!/bin/bash
+exec env APPIMAGE_EXTRACT_AND_RUN=1 /opt/cursor.appimage --no-sandbox "$@"
+EOF
+    chmod 755 /usr/local/bin/code
+    log "Comando 'code' disponível (ex.: code . / code arquivo.ts)."
+  else
+    warn "Cursor não encontrado em /opt/cursor.appimage; pulando comando 'code'."
+  fi
 
   log "Instalando extensão Git Graph no Cursor (Open VSX)..."
   if [ ! -x /opt/cursor.appimage ]; then
