@@ -610,15 +610,16 @@ else
 [General]
 upnp-enabled=true
 enable-transcoding=true
+interface=enp8s0
 video-upload-folder=@VIDEOS@
 music-upload-folder=@MUSIC@
 picture-upload-folder=@PICTURES@
 
 [MediaExport]
 enabled=true
-title=@REALNAME@'s media
-uris=@VIDEOS@;@MUSIC@;@PICTURES@
-extract-metadata=true
+title=Zorin OS
+uris=@VIDEOS@
+extract-metadata=false
 monitor-changes=true
 
 [Tracker]
