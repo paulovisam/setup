@@ -394,6 +394,7 @@ else
     io.dbeaver.DBeaverCommunity
     io.beekeeperstudio.Studio
     com.anydesk.Anydesk
+    io.ente.auth
     org.videolan.VLC
     rest.insomnia.Insomnia
     md.obsidian.Obsidian
@@ -553,6 +554,7 @@ EOF
       || apt-get install -y $APT_OPTIONS libasound2 >/dev/null 2>&1 \
       || warn "libasound indisponível; o Orca pode não abrir sem áudio."
   fi
+
 else
   warn "SKIP_GUI=1 — pulando Termius, Cursor, Git Graph, SoloMD, Grok Bot, Maestri e Orca."
 fi
