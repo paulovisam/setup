@@ -560,6 +560,11 @@ else
 fi
 
 if [ "${SKIP_GUI:-0}" != "1" ] && command -v gsettings >/dev/null 2>&1; then
+  log "Configurando fontes de entrada (Português BR + English US intl)..."
+  run_as_user gsettings set org.gnome.desktop.input-sources sources \
+    "[('xkb', 'br'), ('xkb', 'us+intl')]" \
+    || warn "Falha ao configurar fontes de entrada (continuando)."
+
   log "Definindo atalhos de teclado..."
   log "Configurando atalhos personalizados..."
 
