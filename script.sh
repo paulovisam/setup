@@ -56,11 +56,11 @@ APT_OPTIONS="${APT_OPTIONS:--o Dpkg::Options::=--force-confdef -o Dpkg::Options:
 
 log "Usuário alvo: $REAL_USER (HOME=$REAL_HOME)"
 
-log "Configurando DNS Cloudflare (1.1.1.3, 1.0.0.3)..."
+log "Configurando DNS Cloudflare (1.1.1.2, 1.0.0.2)..."
 mkdir -p /etc/systemd/resolved.conf.d
 cat > /etc/systemd/resolved.conf.d/dns.conf <<'EOF'
 [Resolve]
-DNS=1.1.1.3 1.0.0.3
+DNS=1.1.1.2 1.0.0.2
 EOF
 if systemctl restart systemd-resolved 2>/dev/null; then
   log "systemd-resolved reiniciado."
@@ -72,7 +72,7 @@ if command -v nmcli >/dev/null 2>&1; then
   while IFS= read -r uuid; do
     [ -z "$uuid" ] && continue
     nmcli connection modify "$uuid" ipv4.ignore-auto-dns yes || true
-    nmcli connection modify "$uuid" ipv4.dns "1.1.1.3 1.0.0.3" || true
+    nmcli connection modify "$uuid" ipv4.dns "1.1.1.2 1.0.0.2" || true
   done < <(nmcli -t -f UUID connection show 2>/dev/null || true)
 fi
 
