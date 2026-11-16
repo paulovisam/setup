@@ -446,6 +446,15 @@ Name=AnyDesk
 Exec=flatpak run com.anydesk.Anydesk
 X-GNOME-Autostart-enabled=true
 EOF
+
+  log "Configurando qBittorrent para iniciar no login..."
+  cat > "$REAL_HOME/.config/autostart/qbittorrent.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=qBittorrent
+Exec=flatpak run org.qbittorrent.qBittorrent
+X-GNOME-Autostart-enabled=true
+EOF
   chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/autostart" 2>/dev/null || true
 fi
 
