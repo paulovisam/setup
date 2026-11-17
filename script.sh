@@ -264,7 +264,7 @@ APT_APPS=(
   folder-color
   gnome-sushi
   mysql-client
-  rygel
+  minidlna
 )
 
 log "Instalando pacotes apt..."
@@ -609,55 +609,60 @@ drawThickness=3
 EOF
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/flameshot" 2>/dev/null || true
 
-# DLNA/UPnP AV via Rygel (Videos, Music, Pictures do usuário)
+# DLNA/UPnP AV via MiniDLNA (Videos, Music, Pictures do usuário)
 if [ "${SKIP_DLNA:-0}" = "1" ]; then
-  warn "SKIP_DLNA=1 — pulando Rygel/DLNA."
+  warn "SKIP_DLNA=1 — pulando MiniDLNA/DLNA."
 else
-  log "Configurando Rygel (DLNA) com Videos, Music e Pictures..."
-  mkdir -p "$REAL_HOME/Videos" "$REAL_HOME/Music" "$REAL_HOME/Pictures" "$REAL_HOME/.config"
-  cat > "$REAL_HOME/.config/rygel.conf" <<'EOF'
-[General]
-upnp-enabled=true
-enable-transcoding=true
-interface=enp8s0
-video-upload-folder=@VIDEOS@
-music-upload-folder=@MUSIC@
-picture-upload-folder=@PICTURES@
+  log "Substituindo Rygel por MiniDLNA (se presente)..."
+  REAL_UID="$(id -u "$REAL_USER" 2>/dev/null || true)"
+  if [ -n "$REAL_UID" ] && [ "$REAL_USER" != "root" ] && command -v systemctl >/dev/null 2>&1; then
+    sudo -u "$REAL_USER" -H env HOME="$REAL_HOME" XDG_RUNTIME_DIR="/run/user/$REAL_UID" \
+      systemctl --user disable --now rygel 2>/dev/null || true
+  fi
+  if dpkg -l 2>/dev/null | awk '/^ii/ {print $2}' | grep -qx 'rygel'; then
+    apt-get remove -y rygel >/dev/null 2>&1 || warn "Não foi possível remover o pacote rygel (continuando)."
+  fi
+  rm -f "$REAL_HOME/.config/rygel.conf" 2>/dev/null || true
 
-[MediaExport]
-enabled=true
-title=Zorin OS
-uris=@VIDEOS@
-extract-metadata=false
-monitor-changes=true
-
-[Tracker]
-enabled=false
-
-[LocalSearch]
-enabled=false
-EOF
+  log "Configurando MiniDLNA (DLNA) com Videos, Music e Pictures..."
+  mkdir -p "$REAL_HOME/Videos" "$REAL_HOME/Music" "$REAL_HOME/Pictures"
   chown -R "$REAL_USER:$REAL_USER" \
-    "$REAL_HOME/Videos" "$REAL_HOME/Music" "$REAL_HOME/Pictures" "$REAL_HOME/.config/rygel.conf" 2>/dev/null || true
+    "$REAL_HOME/Videos" "$REAL_HOME/Music" "$REAL_HOME/Pictures" 2>/dev/null || true
 
-  if command -v rygel >/dev/null 2>&1; then
-    REAL_UID="$(id -u "$REAL_USER" 2>/dev/null || true)"
-    if [ -n "$REAL_UID" ] && [ "$REAL_USER" != "root" ] && command -v systemctl >/dev/null 2>&1; then
-      # Mantém o serviço de usuário ativo mesmo sem sessão gráfica aberta
-      if command -v loginctl >/dev/null 2>&1; then
-        loginctl enable-linger "$REAL_USER" 2>/dev/null || warn "Não foi possível habilitar linger para $REAL_USER."
-      fi
-      if sudo -u "$REAL_USER" -H env HOME="$REAL_HOME" XDG_RUNTIME_DIR="/run/user/$REAL_UID" \
-        systemctl --user enable --now rygel 2>/dev/null; then
-        log "Rygel habilitado como serviço de usuário (DLNA)."
+  # Serviço roda como usuário minidlna — precisa ler o home e as pastas de mídia
+  if getent passwd minidlna >/dev/null 2>&1 && [ "$REAL_USER" != "root" ]; then
+    usermod -aG "$REAL_USER" minidlna 2>/dev/null || warn "Falha ao adicionar minidlna ao grupo $REAL_USER."
+    chmod g+x "$REAL_HOME" 2>/dev/null || true
+    chmod -R g+rX "$REAL_HOME/Videos" "$REAL_HOME/Music" "$REAL_HOME/Pictures" 2>/dev/null || true
+  fi
+
+  cat > /etc/minidlna.conf <<EOF
+# Gerado por setup/script.sh — equivalente ao antigo rygel.conf
+# MiniDLNA não faz transcoding (limitação do ReadyMedia).
+port=8200
+network_interface=enp8s0
+friendly_name=Zorin OS
+inotify=yes
+media_dir=V,${REAL_HOME}/Videos
+media_dir=A,${REAL_HOME}/Music
+media_dir=P,${REAL_HOME}/Pictures
+EOF
+
+  if command -v minidlnad >/dev/null 2>&1 || dpkg -l 2>/dev/null | awk '/^ii/ {print $2}' | grep -qx 'minidlna'; then
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl enable --now minidlna 2>/dev/null \
+        || systemctl restart minidlna 2>/dev/null \
+        || warn "Falha ao habilitar/iniciar minidlna; tente: sudo systemctl enable --now minidlna"
+      if systemctl is-active --quiet minidlna 2>/dev/null; then
+        log "MiniDLNA ativo (DLNA em ${REAL_HOME}/{Videos,Music,Pictures}, iface enp8s0)."
       else
-        warn "Falha ao habilitar rygel via systemd --user; inicie manualmente com: rygel"
+        warn "MiniDLNA instalado, mas o serviço não está ativo."
       fi
     else
-      warn "Rygel instalado; inicie com: rygel (ou systemctl --user enable --now rygel)."
+      warn "systemd indisponível; inicie MiniDLNA manualmente: sudo minidlnad -f /etc/minidlna.conf"
     fi
   else
-    warn "Pacote rygel não ficou disponível no PATH após a instalação."
+    warn "Pacote minidlna não ficou disponível após a instalação."
   fi
 fi
 
