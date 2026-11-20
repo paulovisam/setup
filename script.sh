@@ -276,9 +276,9 @@ for app in "${APT_APPS[@]}"; do
   fi
 done
 
-# Brilho real do SuperFrame: 90 das 06h às 17h; redução até 20 às 20h.
-log "Configurando brilho automático do monitor..."
-curl -fsSL https://gist.githubusercontent.com/paulovisam/5da0ad203685feceecd0ec1d00ff02b8/raw/828810791009c827e37a3b825b42d163257b73d2/monitor-brilho.sh | bash || warn "Falha ao configurar brilho automático do monitor (continuando)."
+# Brilho real de cada monitor DDC/CI: 90 das 06h às 17h; redução até 20 às 20h.
+log "Configurando brilho automático dos monitores..."
+curl -fsSL https://gist.githubusercontent.com/paulovisam/5da0ad203685feceecd0ec1d00ff02b8/raw/d13e6142c21a67478e8ade0cf0b3933920501848/monitor-brilho.sh | bash || warn "Falha ao configurar brilho automático do monitor (continuando)."
 
 
 if [ "${SKIP_GUI:-0}" != "1" ] && command -v nautilus >/dev/null 2>&1; then
